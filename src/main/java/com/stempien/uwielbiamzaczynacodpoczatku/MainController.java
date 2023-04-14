@@ -2,23 +2,30 @@ package com.stempien.uwielbiamzaczynacodpoczatku;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 
 import static com.stempien.uwielbiamzaczynacodpoczatku.MsgHelper.showError;
 
 public class MainController {
+    public Button btnReturnBook;
+    public TextField txtDays;
     private String isbn = null;
     private String autor = null;
     private String title = null;
@@ -35,6 +42,7 @@ public class MainController {
     private int numerOfBook = 0;
     private boolean adding=false;
     private boolean editting=false;
+    private LocalDate now = LocalDate.now();
 
     @FXML
     public void initialize() {
@@ -44,6 +52,8 @@ public class MainController {
         String year = null;
         String publisher = null;
         String description = null;
+        LocalDate date;
+        boolean returned;
         List<String> plik = loadFileContent("C:/Users/sirk0/Desktop/x.txt");
         for (int i = 0; i < plik.size(); i++) {
             String plikInaczej = plik.get(i);
@@ -55,8 +65,20 @@ public class MainController {
                 year = podzielonyPlik.get(3);
                 publisher = podzielonyPlik.get(4);
                 description = podzielonyPlik.get(5);
-                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description); //wiem że da się to zrobić od razu ale jest bardziej czytelne
-                ksiazki.add(ksiazka);
+                if(podzielonyPlik.get(6).equals("true")){
+                    returned=true;
+                    txtDays.setVisible(true);
+                    btnReturnBook.setText("Zwróć");
+                    date = LocalDate.parse(podzielonyPlik.get(7));
+                    Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,returned,date); //wiem że da się to zrobić od razu ale jest bardziej czytelne
+                    ksiazki.add(ksiazka);
+               }
+                else{
+                    returned=false;
+                    btnReturnBook.setText("Wyporzycz");
+                    Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,returned); //wiem że da się to zrobić od razu ale jest bardziej czytelne
+                    ksiazki.add(ksiazka);
+                }
             } catch (ArrayIndexOutOfBoundsException e) {
                 showError("Error", "Błąd w czytaniu pliku");
             }
@@ -75,6 +97,13 @@ public class MainController {
         txtYear.setText(ksiazki.get(number).year);
         txtPublisher.setText(ksiazki.get(number).publisher);
         txtDescription.setText(ksiazki.get(number).description);
+        if(ksiazki.get(numerOfBook).isReturned){
+            btnReturnBook.setText("Zwróć");
+        }
+        else{
+            btnReturnBook.setText("Wypożycz");
+        }
+
     }
 
     public static List<String> loadFileContent(String filePath) {
@@ -101,8 +130,14 @@ public class MainController {
     }
     public void btnSaveClicked(ActionEvent actionEvent) {
         String text="";
-    for(int i = 0;i<ksiazki.size();i++){
-            text+=ksiazki.get(i).isbn+","+ksiazki.get(i).autor+","+ksiazki.get(i).title+ksiazki.get(i).year+","+ksiazki.get(i).publisher+","+ksiazki.get(i).description+"\n";
+    for(int i = 0;i<ksiazki.size();i++) {
+        if(ksiazki.get(i).localDate.equals("")){
+            text += ksiazki.get(i).isbn + "," + ksiazki.get(i).autor + "," + ksiazki.get(i).title + "," + ksiazki.get(i).year + "," + ksiazki.get(i).publisher + "," + ksiazki.get(i).description + "," + ksiazki.get(i).isReturned + "\n";
+
+        }
+        else{
+            text += ksiazki.get(i).isbn + "," + ksiazki.get(i).autor + "," + ksiazki.get(i).title + "," + ksiazki.get(i).year + "," + ksiazki.get(i).publisher + "," + ksiazki.get(i).description + "," + ksiazki.get(i).isReturned +","+ksiazki.get(i).localDate+ "\n";
+        }
     }
         saveFile("C:/Users/sirk0/Desktop/x.txt",text);
     }
@@ -126,7 +161,7 @@ public class MainController {
             publisher = txtPublisher.getText();
             description = txtDescription.getText();
             ksiazki.remove(numerOfBook);
-            Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description);
+            Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,ksiazki.get(numerOfBook).isReturned);
             ksiazki.add(numerOfBook,ksiazka);
     }
 
@@ -139,7 +174,7 @@ public class MainController {
                 year = txtYear.getText();
                 publisher = txtPublisher.getText();
                 description = txtDescription.getText();
-                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description);
+                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, ksiazki.get(numerOfBook).isReturned);
                 ksiazki.add(ksiazka);
                 numerOfBook=ksiazki.size()-1;
                 wyswieltKsiazke(numerOfBook);
@@ -159,7 +194,7 @@ public class MainController {
         adding=!adding;
     }
 
-    public void btnDelBook(ActionEvent actionEvent) {
+    public void btnDelBookClicked(ActionEvent actionEvent) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(title);
         alert.setHeaderText("Wybór");
@@ -175,4 +210,67 @@ public class MainController {
             txtDescription.setText("");
         }
     }
+
+    public void btnReturnBookClicked(ActionEvent actionEvent) {
+        if(ksiazki.get(numerOfBook).isReturned){
+            txtDays.setVisible(false);
+            isbn = ksiazki.get(numerOfBook).isbn;
+            autor = ksiazki.get(numerOfBook).autor;
+            title = ksiazki.get(numerOfBook).title;
+            year = ksiazki.get(numerOfBook).year;
+            publisher = ksiazki.get(numerOfBook).publisher;
+            description = ksiazki.get(numerOfBook).description;
+            ksiazki.remove(numerOfBook);
+            Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,true);
+            ksiazki.add(numerOfBook,ksiazka);
+        }
+        else {
+            txtDays.setVisible(true);
+            isbn = ksiazki.get(numerOfBook).isbn;
+            autor = ksiazki.get(numerOfBook).autor;
+            title = ksiazki.get(numerOfBook).title;
+            year = ksiazki.get(numerOfBook).year;
+            publisher = ksiazki.get(numerOfBook).publisher;
+            description = ksiazki.get(numerOfBook).description;
+            ksiazki.remove(numerOfBook);
+            Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, false);
+            ksiazki.add(numerOfBook, ksiazka);
+            Integer numerOfDays = 0;
+            try {
+                numerOfDays = Integer.parseInt(txtDays.getText());
+            } catch (NumberFormatException nfe) {
+                showError("Error", "Błąd wpisywania dnia");
+            }
+            sendEmail("adik08.email@gmail.com", now.plusDays(numerOfDays));
+        }
+        wyswieltKsiazke(numerOfBook);
+
+    }
+
+    private void sendEmail(String userEmail, LocalDate data) {
+        String to = userEmail;
+        String from = "bibloteka@buziaczek.pl";
+        String password = "Bibloteka2023";
+        Properties properties = System.getProperties();
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.host", "smtp.poczta.onet.pl");
+        properties.put("mail.smtp.port", "465");
+        properties.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        Session session = Session.getInstance(properties, new MyAuthenticator(from, password));
+       try {
+           Message message = new MimeMessage(session);
+           message.setFrom(new InternetAddress(from));
+           message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+           message.setSubject("Wypożyczenie");
+           message.setText("Witaj, dziękujemy za wypożyczenie książki. Masz czas do: "+data);
+           Transport.send(message);
+           System.out.println("Wiadomość została wysłana!");
+       } catch (AddressException e) {
+
+       } catch (MessagingException e) {
+
+       }
+
+    }
+
 }
