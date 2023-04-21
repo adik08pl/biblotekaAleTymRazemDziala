@@ -18,7 +18,7 @@ public class HelloController {
             WindowHelper.openWindow(WindowType.FRM_MAIN);
             WindowHelper.closeWindow(txtUser);
             czyAdmin=false;
-        } else if (login.equals("Bob") && password.equals("Bob")) {
+        } else if (login.equals("Admin") && password.equals("Admin")) {
             WindowHelper.openWindow(WindowType.FRM_MAIN);
             WindowHelper.closeWindow(txtUser);
             czyAdmin=false;
