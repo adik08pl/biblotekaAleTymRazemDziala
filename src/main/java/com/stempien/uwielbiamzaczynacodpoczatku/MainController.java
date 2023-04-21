@@ -3,14 +3,15 @@ package com.stempien.uwielbiamzaczynacodpoczatku;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import javax.mail.*;
+import javax.mail.internet.*;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -21,11 +22,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
+import static com.stempien.uwielbiamzaczynacodpoczatku.HelloController.czyAdmin;
 import static com.stempien.uwielbiamzaczynacodpoczatku.MsgHelper.showError;
 
 public class MainController {
     public Button btnReturnBook;
     public TextField txtDays;
+    public Button wyslijWszystkie;
     private String isbn = null;
     private String autor = null;
     private String title = null;
@@ -46,6 +49,10 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        if(!czyAdmin){
+            wyslijWszystkie.setVisible(false);
+        }
+        Toolkit toolkit = Toolkit.getDefaultToolkit();
         String isbn = null;
         String autor = null;
         String title = null;
@@ -55,6 +62,7 @@ public class MainController {
         LocalDate date;
         boolean returned;
         List<String> plik = loadFileContent("C:/Users/sirk0/Desktop/x.txt");
+        toolkit.beep();
         for (int i = 0; i < plik.size(); i++) {
             String plikInaczej = plik.get(i);
             List<String> podzielonyPlik = List.of(plikInaczej.split(","));
@@ -65,9 +73,8 @@ public class MainController {
                 year = podzielonyPlik.get(3);
                 publisher = podzielonyPlik.get(4);
                 description = podzielonyPlik.get(5);
-                if(podzielonyPlik.get(6).equals("true")){
+                if(podzielonyPlik.get(6).equals("false")){
                     returned=true;
-                    txtDays.setVisible(true);
                     btnReturnBook.setText("Zwróć");
                     date = LocalDate.parse(podzielonyPlik.get(7));
                     Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,returned,date); //wiem że da się to zrobić od razu ale jest bardziej czytelne
@@ -75,7 +82,8 @@ public class MainController {
                }
                 else{
                     returned=false;
-                    btnReturnBook.setText("Wyporzycz");
+                    txtDays.setVisible(true);
+                    btnReturnBook.setText("Wypożycz");
                     Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,returned); //wiem że da się to zrobić od razu ale jest bardziej czytelne
                     ksiazki.add(ksiazka);
                 }
@@ -85,7 +93,7 @@ public class MainController {
         }
         try {
             wyswieltKsiazke(0);
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException e) {
 
         }
     }
@@ -131,7 +139,7 @@ public class MainController {
     public void btnSaveClicked(ActionEvent actionEvent) {
         String text="";
     for(int i = 0;i<ksiazki.size();i++) {
-        if(ksiazki.get(i).localDate.equals("")){
+        if(ksiazki.get(i).localDate==null){
             text += ksiazki.get(i).isbn + "," + ksiazki.get(i).autor + "," + ksiazki.get(i).title + "," + ksiazki.get(i).year + "," + ksiazki.get(i).publisher + "," + ksiazki.get(i).description + "," + ksiazki.get(i).isReturned + "\n";
 
         }
@@ -174,7 +182,7 @@ public class MainController {
                 year = txtYear.getText();
                 publisher = txtPublisher.getText();
                 description = txtDescription.getText();
-                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, ksiazki.get(numerOfBook).isReturned);
+                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, false);
                 ksiazki.add(ksiazka);
                 numerOfBook=ksiazki.size()-1;
                 wyswieltKsiazke(numerOfBook);
@@ -212,7 +220,29 @@ public class MainController {
     }
 
     public void btnReturnBookClicked(ActionEvent actionEvent) {
-        if(ksiazki.get(numerOfBook).isReturned){
+        if(!(ksiazki.get(numerOfBook).isReturned)){
+            txtDays.setVisible(true);
+            isbn = ksiazki.get(numerOfBook).isbn;
+            autor = ksiazki.get(numerOfBook).autor;
+            title = ksiazki.get(numerOfBook).title;
+            year = ksiazki.get(numerOfBook).year;
+            publisher = ksiazki.get(numerOfBook).publisher;
+            description = ksiazki.get(numerOfBook).description;
+            ksiazki.remove(numerOfBook);
+            Integer numerOfDays = 0;
+            try {
+                numerOfDays = Integer.parseInt(txtDays.getText());
+                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, false, now.plusDays(numerOfDays));
+                ksiazki.add(numerOfBook, ksiazka);
+            } catch (NumberFormatException nfe) {
+                showError("Error", "Błąd wpisywania dnia");
+                Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, false);
+            }
+            //sendEmail("adik08.email@gmail.com", now.plusDays(numerOfDays));
+            btnReturnBook.setText("Zwróć");
+        }
+        else {
+            btnReturnBook.setText("Wypożycz");
             txtDays.setVisible(false);
             isbn = ksiazki.get(numerOfBook).isbn;
             autor = ksiazki.get(numerOfBook).autor;
@@ -223,25 +253,6 @@ public class MainController {
             ksiazki.remove(numerOfBook);
             Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description,true);
             ksiazki.add(numerOfBook,ksiazka);
-        }
-        else {
-            txtDays.setVisible(true);
-            isbn = ksiazki.get(numerOfBook).isbn;
-            autor = ksiazki.get(numerOfBook).autor;
-            title = ksiazki.get(numerOfBook).title;
-            year = ksiazki.get(numerOfBook).year;
-            publisher = ksiazki.get(numerOfBook).publisher;
-            description = ksiazki.get(numerOfBook).description;
-            ksiazki.remove(numerOfBook);
-            Ksiazki ksiazka = new Ksiazki(isbn, autor, title, year, publisher, description, false);
-            ksiazki.add(numerOfBook, ksiazka);
-            Integer numerOfDays = 0;
-            try {
-                numerOfDays = Integer.parseInt(txtDays.getText());
-            } catch (NumberFormatException nfe) {
-                showError("Error", "Błąd wpisywania dnia");
-            }
-            sendEmail("adik08.email@gmail.com", now.plusDays(numerOfDays));
         }
         wyswieltKsiazke(numerOfBook);
 
@@ -266,11 +277,21 @@ public class MainController {
            Transport.send(message);
            System.out.println("Wiadomość została wysłana!");
        } catch (AddressException e) {
-
+           e.printStackTrace();
        } catch (MessagingException e) {
-
+            e.printStackTrace();
        }
 
     }
 
+    public void btnKopiaClicked(ActionEvent actionEvent) {
+        String tekst = ksiazki.get(numerOfBook).autor +" - “"+ksiazki.get(numerOfBook).title+"“";
+        StringSelection selection = new StringSelection(tekst);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, selection);
+    }
+
+    public void btnWyslijWszystkieClicked(ActionEvent actionEvent) {
+
+    }
 }

@@ -7,6 +7,7 @@ public class HelloController {
     @FXML
     public TextField txtUser;
     public TextField txtPassword;
+    public static boolean czyAdmin;
 
 
     @FXML
@@ -16,8 +17,12 @@ public class HelloController {
         if (login.equals("Bob") && password.equals("Bob")) {
             WindowHelper.openWindow(WindowType.FRM_MAIN);
             WindowHelper.closeWindow(txtUser);
-        }
-        else{
+            czyAdmin=false;
+        } else if (login.equals("Bob") && password.equals("Bob")) {
+            WindowHelper.openWindow(WindowType.FRM_MAIN);
+            WindowHelper.closeWindow(txtUser);
+            czyAdmin=false;
+        } else{
             MsgHelper.showError("Błąd","Nie znaloziono takich danych w naszym zbiorze loginów i haseł");
         }
     }

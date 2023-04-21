@@ -4,6 +4,7 @@ module com.stempien.uwielbiamzaczynacodpoczatku {
 
     requires org.controlsfx.controls;
     requires java.mail;
+    requires java.desktop;
 
     opens com.stempien.uwielbiamzaczynacodpoczatku to javafx.fxml;
     exports com.stempien.uwielbiamzaczynacodpoczatku;
