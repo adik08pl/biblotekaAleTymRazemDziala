@@ -15,13 +15,13 @@ public class HelloController {
         String password = txtPassword.getText();
         String login = txtUser.getText();
         if (login.equals("Bob") && password.equals("Bob")) {
+            czyAdmin=false;
             WindowHelper.openWindow(WindowType.FRM_MAIN);
             WindowHelper.closeWindow(txtUser);
-            czyAdmin=false;
         } else if (login.equals("Admin") && password.equals("Admin")) {
+            czyAdmin=true;
             WindowHelper.openWindow(WindowType.FRM_MAIN);
             WindowHelper.closeWindow(txtUser);
-            czyAdmin=false;
         } else{
             MsgHelper.showError("Błąd","Nie znaloziono takich danych w naszym zbiorze loginów i haseł");
         }
